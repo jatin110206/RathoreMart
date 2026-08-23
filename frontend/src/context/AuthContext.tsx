@@ -12,7 +12,7 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 const STORAGE_KEY = 'rathoremart_user';
-const BASE = '/api';
+const BASE = import.meta.env.VITE_API_URL || '/api';
 
 /** Safely POST and parse response */
 const post = async (path: string, body: object) => {

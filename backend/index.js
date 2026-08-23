@@ -10,7 +10,18 @@ const app = express();
 
 // ── CORS — allow Vite dev server ──────────────────────────────────────────────
 app.use(cors({
-    origin: ['http://localhost:5173', 'http://127.0.0.1:5173'],
+    origin: function(origin, callback) {
+        const allowed = [
+            'http://localhost:5173',
+            'http://127.0.0.1:5173',
+        ];
+        // Allow any Vercel deployment URL + the custom domain if set
+        if (!origin || allowed.includes(origin) || /\.vercel\.app$/.test(origin) || origin === process.env.FRONTEND_URL) {
+            callback(null, true);
+        } else {
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],

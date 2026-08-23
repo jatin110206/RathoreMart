@@ -1,6 +1,6 @@
-// Central API service — uses relative /api so Vite proxy forwards to Express backend.
-// No CORS issues because the browser sees everything as same-origin (localhost:5173).
-const BASE = '/api';
+// In production (Vercel): VITE_API_URL = https://your-backend.onrender.com/api
+// In development: Vite proxy forwards /api → localhost:3000
+const BASE = import.meta.env.VITE_API_URL || '/api';
 
 const STORAGE_KEY = 'rathoremart_user';
 
