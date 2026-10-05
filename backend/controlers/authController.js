@@ -51,13 +51,12 @@ const registerUser = async (req, res) => {
             `Hi ${name},\n\nWelcome to rathoreMart!\n\nYour email verification OTP is:\n\n  ➤  ${otp}  ◄\n\nThis code is valid for 10 minutes. Do not share it with anyone.\n\nIf you did not create this account, please ignore this email.\n\nTeam rathoreMart`
         ).catch(err => console.warn('OTP email failed (non-critical):', err.message));
 
-        // Return success with OTP included so verification never fails if cloud host blocks SMTP
+        // Return success — user will check their email and type OTP manually
         res.status(201).json({
             success: true,
             needsOTP: true,
             message: 'OTP sent to your email. Please verify to activate your account.',
             email: newUser.email,
-            otp: otp,
         });
 
     } catch (error) {
@@ -152,10 +151,10 @@ Your new OTP is: ${otp}
 
 This OTP is valid for 10 minutes. Do not share it with anyone.`;
 
-        // Non-blocking email attempt so SMTP port blocks on Render never freeze the response
+        // Non-blocking email attempt
         sendEmail(email, "rathoreMart - New OTP", message).catch(err => console.warn('Resend OTP email failed (non-critical):', err.message));
 
-        res.json({ success: true, message: "A new OTP has been generated.", otp });
+        res.json({ success: true, message: "A new OTP has been sent to your email." });
 
     } catch (error) {
         console.error(error);
