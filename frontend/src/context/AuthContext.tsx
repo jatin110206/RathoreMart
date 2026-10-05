@@ -11,8 +11,15 @@ interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+// Handles both 'https://host.onrender.com' and 'https://host.onrender.com/api' (with or without trailing slash)
+const getApiBase = () => {
+  const envUrl = import.meta.env.VITE_API_URL;
+  if (!envUrl) return '/api';
+  const cleanUrl = envUrl.trim().replace(/\/+$/, '');
+  return cleanUrl.endsWith('/api') ? cleanUrl : `${cleanUrl}/api`;
+};
 const STORAGE_KEY = 'rathoremart_user';
-const BASE = import.meta.env.VITE_API_URL || '/api';
+const BASE = getApiBase();
 
 /** Safely POST and parse response */
 const post = async (path: string, body: object) => {

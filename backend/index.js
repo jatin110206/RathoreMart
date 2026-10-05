@@ -8,23 +8,35 @@ connectDB();
 
 const app = express();
 
-// ── CORS — allow Vite dev server ──────────────────────────────────────────────
+// ── CORS configuration ───────────────────────────────────────────────────────
+const allowedOrigins = [
+    'http://localhost:5173',
+    'http://127.0.0.1:5173',
+];
+
+if (process.env.FRONTEND_URL) {
+    process.env.FRONTEND_URL.split(',').forEach(url => {
+        const clean = url.trim().replace(/\/+$/, '');
+        if (clean && !allowedOrigins.includes(clean)) allowedOrigins.push(clean);
+    });
+}
+
 app.use(cors({
     origin: function(origin, callback) {
-        const allowed = [
-            'http://localhost:5173',
-            'http://127.0.0.1:5173',
-        ];
-        // Allow any Vercel deployment URL + the custom domain if set
-        if (!origin || allowed.includes(origin) || /\.vercel\.app$/.test(origin) || origin === process.env.FRONTEND_URL) {
+        if (!origin) return callback(null, true);
+        const cleanOrigin = origin.replace(/\/+$/, '');
+        // Allow localhost, any *.vercel.app domain, or explicitly configured FRONTEND_URL
+        if (allowedOrigins.includes(cleanOrigin) || /\.vercel\.app$/.test(cleanOrigin)) {
             callback(null, true);
         } else {
+            console.warn(`[CORS] Rejected origin: ${origin}`);
             callback(new Error('Not allowed by CORS'));
         }
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
+    optionsSuccessStatus: 200,
 }));
 
 app.use(express.json());

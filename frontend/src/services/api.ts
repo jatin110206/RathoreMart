@@ -1,6 +1,12 @@
-// In production (Vercel): VITE_API_URL = https://your-backend.onrender.com/api
-// In development: Vite proxy forwards /api → localhost:3000
-const BASE = import.meta.env.VITE_API_URL || '/api';
+// Handles both 'https://host.onrender.com' and 'https://host.onrender.com/api' (with or without trailing slash)
+const getApiBase = () => {
+  const envUrl = import.meta.env.VITE_API_URL;
+  if (!envUrl) return '/api';
+  const cleanUrl = envUrl.trim().replace(/\/+$/, '');
+  return cleanUrl.endsWith('/api') ? cleanUrl : `${cleanUrl}/api`;
+};
+
+const BASE = getApiBase();
 
 const STORAGE_KEY = 'rathoremart_user';
 
