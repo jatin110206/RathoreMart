@@ -10,57 +10,13 @@ router.post("/verify-otp", verifyOTP);
 router.post("/resend-otp", resendOTP);
 router.post("/login",      LoginUser);
 router.get("/diagnostic-email", async (req, res) => {
-    const nodemailer = require('nodemailer');
-    const emailUser = (process.env.EMAIL_USER || '').replace(/[\r\n\s]/g, '').trim();
-    const emailPass = (process.env.EMAIL_PASS || '').replace(/[\r\n\s]/g, '').trim();
-    const to = req.query.to || emailUser;
-
-    const debug = {
-        hasUser: !!emailUser,
-        userLength: emailUser.length,
-        userMasked: emailUser.replace(/(.{3})(.*)(@.*)/, '$1***$3'),
-        hasPass: !!emailPass,
-        passLength: emailPass.length,
-        passPreview: emailPass ? `${emailPass.slice(0, 2)}***${emailPass.slice(-2)}` : null,
-        targetEmail: to
-    };
-
+    const to = req.query.to || 'jatinprakashrathore@gmail.com';
+    const sendEmail = require('../utils/sendMail.js');
     try {
-        const dns = require('dns').promises;
-        let hostIp = '192.178.158.108';
-        try {
-            const addrs = await dns.resolve4('smtp.gmail.com');
-            if (addrs && addrs.length > 0) hostIp = addrs[0];
-        } catch (e) {
-            console.warn('DNS fallback used');
-        }
-
-        const port = req.query.port ? parseInt(req.query.port) : 465;
-        const secure = port === 465;
-
-        const transporter = nodemailer.createTransport({
-            host: hostIp,
-            port: port,
-            secure: secure,
-            auth: { user: emailUser, pass: emailPass },
-            tls: {
-                servername: 'smtp.gmail.com'
-            },
-            connectionTimeout: 10000,
-            greetingTimeout: 10000,
-            socketTimeout: 10000
-        });
-
-        const info = await transporter.sendMail({
-            from: `"rathoreMart" <${emailUser}>`,
-            to,
-            subject: 'rathoreMart Diagnostic Test (Direct IPv4)',
-            text: `This is a test email from rathoreMart backend sent directly to IPv4 ${hostIp} via port ${port}!`
-        });
-
-        res.json({ success: true, debug: { ...debug, hostIp, port, secure }, messageId: info.messageId });
+        const result = await sendEmail(to, 'rathoreMart Diagnostic via Resend', 'This is a test OTP email from rathoreMart!');
+        res.json({ success: true, targetEmail: to, result });
     } catch (err) {
-        res.json({ success: false, debug, error: err.message, code: err.code, response: err.response });
+        res.json({ success: false, targetEmail: to, error: err.message });
     }
 });
 router.get("/users",       protect, admin, getUsers);

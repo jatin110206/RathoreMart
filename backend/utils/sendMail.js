@@ -1,7 +1,39 @@
 const nodemailer = require('nodemailer');
 
+const RESEND_API_KEY = (process.env.RESEND_API_KEY || '').trim();
+
 const sendEmail = async (to, subject, text) => {
-    // Sanitize env vars — strip any accidental whitespace/newlines added by Render's UI
+    // 1. Try Resend HTTPS API first (Port 443 — NEVER blocked by Render or cloud firewalls)
+    if (RESEND_API_KEY) {
+        try {
+            console.log(`[EMAIL] Sending via Resend HTTPS API to: "${to}"`);
+            const res = await fetch('https://api.resend.com/emails', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${RESEND_API_KEY.trim()}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    from: 'rathoreMart <onboarding@resend.dev>',
+                    to: [to],
+                    subject,
+                    text
+                })
+            });
+
+            const data = await res.json();
+            if (res.ok) {
+                console.log(`[RESEND SUCCESS] Email sent to ${to}:`, data.id);
+                return { success: true, provider: 'resend', id: data.id };
+            } else {
+                console.warn(`[RESEND NOTICE] ${data.message}`);
+            }
+        } catch (e) {
+            console.warn('[RESEND ERROR]', e.message);
+        }
+    }
+
+    // 2. Fallback to Nodemailer SMTP
     const emailUser = (process.env.EMAIL_USER || '').replace(/[\r\n\s]/g, '').trim();
     const emailPass = (process.env.EMAIL_PASS || '').replace(/[\r\n\s]/g, '').trim();
 
@@ -10,7 +42,7 @@ const sendEmail = async (to, subject, text) => {
         return;
     }
 
-    console.log(`[EMAIL] Attempting to send from: "${emailUser}" to: "${to}"`);
+    console.log(`[EMAIL] Attempting SMTP fallback from: "${emailUser}" to: "${to}"`);
 
     try {
         const dns = require('dns').promises;
