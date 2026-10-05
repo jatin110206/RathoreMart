@@ -18,7 +18,10 @@ const sendEmail = async (to, subject, text) => {
             auth: {
                 user: emailUser,
                 pass: emailPass
-            }
+            },
+            connectionTimeout: 4000,
+            greetingTimeout: 4000,
+            socketTimeout: 4000
         });
         const mailOptions = {
             from: `"rathoreMart" <${emailUser}>`,

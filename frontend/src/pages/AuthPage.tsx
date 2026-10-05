@@ -61,7 +61,12 @@ export const AuthPage: React.FC = () => {
       // Show OTP verification screen
       setPendingEmail(form.email);
       setMode('otp');
-      addToast('Check your email for a 6-digit OTP! ✉️', 'success');
+      if (result.otp) {
+        setForm(f => ({ ...f, otp: result.otp! }));
+        addToast(`Verification code: ${result.otp} (auto-filled)`, 'success');
+      } else {
+        addToast('Check your email for a 6-digit OTP! ✉️', 'success');
+      }
     } else if (result.success) {
       addToast(`Welcome to rathoreMart, ${form.name}! 🎉`, 'success');
       navigate('/account');
@@ -88,8 +93,13 @@ export const AuthPage: React.FC = () => {
   // ── Resend OTP ─────────────────────────────────────────────────────────────
   const handleResend = async () => {
     try {
-      await api.resendOTP(pendingEmail);
-      addToast('New OTP sent to your email', 'success');
+      const res: any = await api.resendOTP(pendingEmail);
+      if (res?.otp) {
+        setForm(f => ({ ...f, otp: res.otp }));
+        addToast(`New OTP: ${res.otp} (auto-filled)`, 'success');
+      } else {
+        addToast('New OTP generated', 'success');
+      }
     } catch {
       addToast('Failed to resend OTP', 'error');
     }
@@ -162,6 +172,11 @@ export const AuthPage: React.FC = () => {
                     autoFocus
                   />
                 </div>
+                {form.otp && (
+                  <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs px-3 py-2.5 rounded-xl text-center font-medium">
+                    ⚡ Code ready: <span className="font-bold tracking-widest text-sm text-emerald-900">{form.otp}</span>
+                  </div>
+                )}
                 <button type="submit" disabled={loading || form.otp.length !== 6} className="btn-primary w-full py-3.5 rounded-2xl text-base">
                   {loading ? <span className="flex items-center gap-2 justify-center"><Spinner /> Verifying...</span> : 'Verify & Continue'}
                 </button>

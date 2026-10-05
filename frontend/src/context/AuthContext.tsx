@@ -5,7 +5,7 @@ interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<{ success: boolean; needsOTP?: boolean; error?: string }>;
-  register: (name: string, email: string, password: string) => Promise<{ success: boolean; needsOTP?: boolean; error?: string }>;
+  register: (name: string, email: string, password: string) => Promise<{ success: boolean; needsOTP?: boolean; otp?: string; error?: string }>;
   verifyOTP: (email: string, otp: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
 }
@@ -97,9 +97,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const register = async (name: string, email: string, password: string) => {
     try {
       const data = await post('/auth/register', { name, email, password });
-      // Backend returns { needsOTP: true, email } — no token yet
+      // Backend returns { needsOTP: true, email, otp } — no token yet
       if (data.needsOTP) {
-        return { success: true, needsOTP: true };
+        return { success: true, needsOTP: true, otp: data.otp };
       }
       // Fallback: if backend auto-verified, log in immediately
       applyUser(data);
