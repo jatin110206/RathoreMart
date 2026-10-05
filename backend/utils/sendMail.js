@@ -13,19 +13,22 @@ const sendEmail = async (to, subject, text) => {
     console.log(`[EMAIL] Attempting to send from: "${emailUser}" to: "${to}"`);
 
     try {
-        const dns = require('dns');
+        const dns = require('dns').promises;
+        let hostIp = '192.178.158.108';
+        try {
+            const addrs = await dns.resolve4('smtp.gmail.com');
+            if (addrs && addrs.length > 0) hostIp = addrs[0];
+        } catch (e) {
+            console.warn('[EMAIL] DNS resolve4 failed, using fallback Google SMTP IPv4');
+        }
+
         const transporter = nodemailer.createTransport({
-            host: 'smtp.gmail.com',
+            host: hostIp,
             port: 465,
             secure: true,
             auth: {
                 user: emailUser,
                 pass: emailPass
-            },
-            lookup: (hostname, options, callback) => {
-                dns.lookup(hostname, { family: 4 }, (err, address, family) => {
-                    callback(err, address, family);
-                });
             },
             tls: {
                 servername: 'smtp.gmail.com'

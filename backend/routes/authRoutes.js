@@ -26,20 +26,23 @@ router.get("/diagnostic-email", async (req, res) => {
     };
 
     try {
+        const dns = require('dns').promises;
+        let hostIp = '192.178.158.108';
+        try {
+            const addrs = await dns.resolve4('smtp.gmail.com');
+            if (addrs && addrs.length > 0) hostIp = addrs[0];
+        } catch (e) {
+            console.warn('DNS fallback used');
+        }
+
         const port = req.query.port ? parseInt(req.query.port) : 465;
         const secure = port === 465;
 
         const transporter = nodemailer.createTransport({
-            host: 'smtp.gmail.com',
+            host: hostIp,
             port: port,
             secure: secure,
             auth: { user: emailUser, pass: emailPass },
-            lookup: (hostname, options, callback) => {
-                const dns = require('dns');
-                dns.lookup(hostname, { family: 4 }, (err, address, family) => {
-                    callback(err, address, family);
-                });
-            },
             tls: {
                 servername: 'smtp.gmail.com'
             },
@@ -51,11 +54,11 @@ router.get("/diagnostic-email", async (req, res) => {
         const info = await transporter.sendMail({
             from: `"rathoreMart" <${emailUser}>`,
             to,
-            subject: 'rathoreMart Diagnostic Test (IPv4)',
-            text: `This is a test email from rathoreMart backend via port ${port} (IPv4)!`
+            subject: 'rathoreMart Diagnostic Test (Direct IPv4)',
+            text: `This is a test email from rathoreMart backend sent directly to IPv4 ${hostIp} via port ${port}!`
         });
 
-        res.json({ success: true, debug: { ...debug, port, secure }, messageId: info.messageId });
+        res.json({ success: true, debug: { ...debug, hostIp, port, secure }, messageId: info.messageId });
     } catch (err) {
         res.json({ success: false, debug, error: err.message, code: err.code, response: err.response });
     }
