@@ -3,7 +3,7 @@ const nodemailer = require('nodemailer');
 const sendEmail = async (to, subject, text) => {
     // Sanitize env vars — strip any accidental whitespace/newlines added by Render's UI
     const emailUser = (process.env.EMAIL_USER || '').replace(/[\r\n\s]/g, '').trim();
-    const emailPass = (process.env.EMAIL_PASS || '').replace(/[\r\n]/g, '').trim();
+    const emailPass = (process.env.EMAIL_PASS || '').replace(/[\r\n\s]/g, '').trim();
 
     if (!emailUser || !emailPass) {
         console.error('[EMAIL CONFIG ERROR] EMAIL_USER or EMAIL_PASS is missing or empty on this server!');
