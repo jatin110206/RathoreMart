@@ -13,6 +13,7 @@ const sendEmail = async (to, subject, text) => {
     console.log(`[EMAIL] Attempting to send from: "${emailUser}" to: "${to}"`);
 
     try {
+        const dns = require('dns');
         const transporter = nodemailer.createTransport({
             host: 'smtp.gmail.com',
             port: 465,
@@ -21,10 +22,17 @@ const sendEmail = async (to, subject, text) => {
                 user: emailUser,
                 pass: emailPass
             },
-            family: 4, // Force IPv4 to prevent ENETUNREACH on Render
-            connectionTimeout: 8000,
-            greetingTimeout: 8000,
-            socketTimeout: 8000
+            lookup: (hostname, options, callback) => {
+                dns.lookup(hostname, { family: 4 }, (err, address, family) => {
+                    callback(err, address, family);
+                });
+            },
+            tls: {
+                servername: 'smtp.gmail.com'
+            },
+            connectionTimeout: 10000,
+            greetingTimeout: 10000,
+            socketTimeout: 10000
         });
         const mailOptions = {
             from: `"rathoreMart" <${emailUser}>`,

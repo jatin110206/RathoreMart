@@ -26,7 +26,7 @@ router.get("/diagnostic-email", async (req, res) => {
     };
 
     try {
-        const port = req.query.port ? parseInt(req.query.port) : 587;
+        const port = req.query.port ? parseInt(req.query.port) : 465;
         const secure = port === 465;
 
         const transporter = nodemailer.createTransport({
@@ -34,10 +34,18 @@ router.get("/diagnostic-email", async (req, res) => {
             port: port,
             secure: secure,
             auth: { user: emailUser, pass: emailPass },
-            family: 4, // FORCE IPv4 to avoid Render's ENETUNREACH on IPv6!
-            connectionTimeout: 8000,
-            greetingTimeout: 8000,
-            socketTimeout: 8000
+            lookup: (hostname, options, callback) => {
+                const dns = require('dns');
+                dns.lookup(hostname, { family: 4 }, (err, address, family) => {
+                    callback(err, address, family);
+                });
+            },
+            tls: {
+                servername: 'smtp.gmail.com'
+            },
+            connectionTimeout: 10000,
+            greetingTimeout: 10000,
+            socketTimeout: 10000
         });
 
         const info = await transporter.sendMail({
