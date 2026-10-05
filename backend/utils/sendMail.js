@@ -14,14 +14,17 @@ const sendEmail = async (to, subject, text) => {
 
     try {
         const transporter = nodemailer.createTransport({
-            service: 'Gmail',
+            host: 'smtp.gmail.com',
+            port: 465,
+            secure: true,
             auth: {
                 user: emailUser,
                 pass: emailPass
             },
-            connectionTimeout: 4000,
-            greetingTimeout: 4000,
-            socketTimeout: 4000
+            family: 4, // Force IPv4 to prevent ENETUNREACH on Render
+            connectionTimeout: 8000,
+            greetingTimeout: 8000,
+            socketTimeout: 8000
         });
         const mailOptions = {
             from: `"rathoreMart" <${emailUser}>`,

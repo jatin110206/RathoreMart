@@ -26,9 +26,15 @@ router.get("/diagnostic-email", async (req, res) => {
     };
 
     try {
+        const port = req.query.port ? parseInt(req.query.port) : 587;
+        const secure = port === 465;
+
         const transporter = nodemailer.createTransport({
-            service: 'Gmail',
+            host: 'smtp.gmail.com',
+            port: port,
+            secure: secure,
             auth: { user: emailUser, pass: emailPass },
+            family: 4, // FORCE IPv4 to avoid Render's ENETUNREACH on IPv6!
             connectionTimeout: 8000,
             greetingTimeout: 8000,
             socketTimeout: 8000
@@ -37,11 +43,11 @@ router.get("/diagnostic-email", async (req, res) => {
         const info = await transporter.sendMail({
             from: `"rathoreMart" <${emailUser}>`,
             to,
-            subject: 'rathoreMart Diagnostic Test',
-            text: 'This is a test email from rathoreMart backend!'
+            subject: 'rathoreMart Diagnostic Test (IPv4)',
+            text: `This is a test email from rathoreMart backend via port ${port} (IPv4)!`
         });
 
-        res.json({ success: true, debug, messageId: info.messageId });
+        res.json({ success: true, debug: { ...debug, port, secure }, messageId: info.messageId });
     } catch (err) {
         res.json({ success: false, debug, error: err.message, code: err.code, response: err.response });
     }
