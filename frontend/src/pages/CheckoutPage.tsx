@@ -40,7 +40,7 @@ export const CheckoutPage: React.FC = () => {
       phone:      savedAddr?.phone || '9876543210',
       firstName:  first || (user ? 'Customer' : ''),
       lastName:   last || '',
-      address:    savedAddr?.address || '45 Linking Road, Bandra West',
+      address:    savedAddr?.addressLine1 || '45 Linking Road, Bandra West',
       city:       savedAddr?.city || 'Mumbai',
       state:      savedAddr?.state || 'Maharashtra',
       pincode:    savedAddr?.pincode || '400050',
