@@ -15,6 +15,7 @@ import { SearchPage } from './pages/SearchPage';
 import { AuthPage } from './pages/AuthPage';
 import { AccountPage } from './pages/AccountPage';
 import { OrderDetailPage } from './pages/OrderDetailPage';
+import { AdminPage } from './pages/AdminPage';
 
 function App() {
   return (
@@ -34,6 +35,7 @@ function App() {
                 <Route path="/auth" element={<AuthPage />} />
                 <Route path="/account" element={<AccountPage />} />
                 <Route path="/orders/:id" element={<OrderDetailPage />} />
+                <Route path="/admin" element={<AdminPage />} />
                 {/* Fallback */}
                 <Route path="*" element={<HomePage />} />
               </Routes>

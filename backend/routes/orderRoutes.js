@@ -9,7 +9,7 @@ const {
     updateOrderStatus,
     getAllOrders,
     cancelOrder
-} = require('../controlers/orderController');
+} = require('../controllers/orderController');
 
 const { protect } = require('../middleware/authMiddleware');
 const { admin }   = require('../middleware/adminMiddleware');

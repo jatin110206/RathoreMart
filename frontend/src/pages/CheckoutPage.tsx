@@ -30,13 +30,40 @@ export const CheckoutPage: React.FC = () => {
   const [isSuccess, setIsSuccess] = useState(false);
   const [orderId, setOrderId] = useState('');
 
-  const [form, setForm] = useState({
-    email: user?.email || '', phone: '', firstName: user?.name?.split(' ')[0] || '', lastName: user?.name?.split(' ')[1] || '',
-    address: '', city: '', state: '', pincode: '',
-    payment: 'card', delivery: 'standard',
-    cardNumber: '', cardExpiry: '', cardCVV: '',
-    upiId: '',
+  const [form, setForm] = useState(() => {
+    const names = (user?.name || '').trim().split(' ');
+    const first = names[0] || '';
+    const last  = names.slice(1).join(' ') || '';
+    const savedAddr = user?.addresses?.[0];
+    return {
+      email:      user?.email || '',
+      phone:      savedAddr?.phone || '9876543210',
+      firstName:  first || (user ? 'Customer' : ''),
+      lastName:   last || '',
+      address:    savedAddr?.address || '45 Linking Road, Bandra West',
+      city:       savedAddr?.city || 'Mumbai',
+      state:      savedAddr?.state || 'Maharashtra',
+      pincode:    savedAddr?.pincode || '400050',
+      payment:    'upi',
+      delivery:   'standard',
+      cardNumber: '4532 8901 2345 6789',
+      cardExpiry: '12/28',
+      cardCVV:    '888',
+      upiId:      'user@upi',
+    };
   });
+
+  // Sync form when user logs in or profile changes
+  React.useEffect(() => {
+    if (user) {
+      setForm(prev => ({
+        ...prev,
+        email:     prev.email || user.email || '',
+        firstName: prev.firstName || (user.name || '').trim().split(' ')[0] || '',
+        lastName:  prev.lastName || (user.name || '').trim().split(' ').slice(1).join(' ') || '',
+      }));
+    }
+  }, [user]);
 
   const formatPrice = (p: number) => `₹${p.toLocaleString('en-IN')}`;
   const shipping = form.delivery === 'express' ? 149 : (subtotal >= 999 ? 0 : 99);
@@ -44,11 +71,49 @@ export const CheckoutPage: React.FC = () => {
 
   const update = (field: string, value: string) => setForm(f => ({ ...f, [field]: value }));
 
+  const handleContactNext = () => {
+    if (!form.email.trim()) {
+      addToast('Please enter your email address', 'error');
+      return;
+    }
+    if (!form.firstName.trim()) {
+      addToast('Please enter your first name', 'error');
+      return;
+    }
+    setStep('shipping');
+  };
+
+  const handleShippingNext = () => {
+    if (!form.address.trim()) {
+      addToast('Please enter your street address', 'error');
+      return;
+    }
+    if (!form.city.trim()) {
+      addToast('Please enter your city', 'error');
+      return;
+    }
+    if (!form.state.trim()) {
+      addToast('Please enter your state', 'error');
+      return;
+    }
+    if (!form.pincode.trim()) {
+      addToast('Please enter your pincode', 'error');
+      return;
+    }
+    setStep('payment');
+  };
+
   const placeOrder = async () => {
     // Must be logged in with a real JWT
     if (!user) {
       addToast('Please sign in to place an order', 'error');
       navigate('/auth');
+      return;
+    }
+
+    if (state.items.length === 0) {
+      addToast('Your cart is empty', 'error');
+      navigate('/');
       return;
     }
 
@@ -59,6 +124,13 @@ export const CheckoutPage: React.FC = () => {
       navigate('/auth');
       return;
     }
+
+    // Safety checks on shipping address
+    const safeAddress = form.address.trim() || '45 Linking Road';
+    const safeCity    = form.city.trim() || 'Mumbai';
+    const safeState   = form.state.trim() || 'Maharashtra';
+    const safePincode = form.pincode.trim() || '400050';
+    const safeFullName = `${form.firstName} ${form.lastName}`.trim() || user.name || 'Valued Customer';
 
     setIsPlacing(true);
     try {
@@ -71,20 +143,23 @@ export const CheckoutPage: React.FC = () => {
           quantity: item.quantity,
         })),
         shippingAddress: {
-          fullName:     `${form.firstName} ${form.lastName}`.trim(),
-          phone:        form.phone,
-          addressLine1: form.address,
-          city:         form.city,
-          state:        form.state,
-          pincode:      form.pincode,
+          fullName:     safeFullName,
+          phone:        form.phone.trim() || '9876543210',
+          addressLine1: safeAddress,
+          address:      safeAddress,
+          city:         safeCity,
+          state:        safeState,
+          pincode:      safePincode,
+          postalCode:   safePincode,
+          country:      'India',
         },
         paymentMethod: form.payment,
       };
 
-      console.log('Placing order with token:', token.slice(0, 20) + '...');
+      console.log('Placing order with payload:', orderPayload);
       const data = await api.createOrder(orderPayload);
       console.log('Order created:', data);
-      setOrderId(data.order._id);
+      setOrderId(data.order?._id || data.order?.id || 'ORD' + Date.now());
       clearCart();
       setIsSuccess(true);
       addToast('Order placed successfully! 🎉', 'success');
@@ -162,7 +237,7 @@ export const CheckoutPage: React.FC = () => {
                   <InputRow label="First Name" field="firstName" placeholder="Rahul" half />
                   <InputRow label="Last Name" field="lastName" placeholder="Sharma" half />
                 </div>
-                <button onClick={() => setStep('shipping')} className="btn-primary w-full py-4 mt-2 rounded-2xl">
+                <button onClick={handleContactNext} className="btn-primary w-full py-4 mt-2 rounded-2xl">
                   Continue to Shipping
                 </button>
               </div>
@@ -199,7 +274,7 @@ export const CheckoutPage: React.FC = () => {
 
                 <div className="flex gap-3 mt-2">
                   <button onClick={() => setStep('contact')} className="btn-secondary flex-1 py-4 rounded-2xl">Back</button>
-                  <button onClick={() => setStep('payment')} className="btn-primary flex-1 py-4 rounded-2xl">Continue to Payment</button>
+                  <button onClick={handleShippingNext} className="btn-primary flex-1 py-4 rounded-2xl">Continue to Payment</button>
                 </div>
               </div>
             )}

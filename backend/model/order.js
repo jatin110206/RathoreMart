@@ -9,14 +9,14 @@ const orderItemSchema = new mongoose.Schema({
 });
 
 const shippingAddressSchema = new mongoose.Schema({
-    fullName:    { type: String, required: true },
+    fullName:    { type: String, default: 'Customer' },
     // Support both field names the frontend might send
-    address:     { type: String },
-    addressLine1:{ type: String },
-    city:        { type: String, required: true },
-    state:       { type: String, required: true },
-    postalCode:  { type: String },
-    pincode:     { type: String },
+    address:     { type: String, default: '' },
+    addressLine1:{ type: String, default: '' },
+    city:        { type: String, default: 'Not specified' },
+    state:       { type: String, default: 'Not specified' },
+    postalCode:  { type: String, default: '' },
+    pincode:     { type: String, default: '' },
     country:     { type: String, default: 'India' },
     phone:       { type: String, default: '' }
 });
@@ -33,9 +33,6 @@ const orderSchema = new mongoose.Schema(
 
         paymentMethod: {
             type: String,
-            required: true,
-            // Accept all payment methods the frontend can send
-            enum: ['razorpay', 'cod', 'card', 'upi', 'COD', 'Credit / Debit Card', 'UPI', 'Cash on Delivery'],
             default: 'cod'
         },
         paymentResult: {

@@ -31,10 +31,13 @@ const createOrder = async (req, res) => {
                 }
                 const linePrice = dbProduct.price * item.quantity;
                 itemsPrice += linePrice;
+                const imgUrl = (typeof dbProduct.images?.[0] === 'string'
+                    ? dbProduct.images[0]
+                    : dbProduct.images?.[0]?.url) || item.image || '';
                 verifiedItems.push({
                     product:  dbProduct._id,
                     name:     dbProduct.name,
-                    image:    dbProduct.images[0]?.url || item.image || '',
+                    image:    imgUrl,
                     price:    dbProduct.price,
                     quantity: item.quantity
                 });
@@ -62,44 +65,46 @@ const createOrder = async (req, res) => {
         const taxPrice      = Math.round(itemsPrice * 0.18);
         const totalPrice    = itemsPrice + shippingPrice + taxPrice;
 
-        // Normalise address fields — frontend sends addressLine1/pincode
+        // Normalise address fields with safe fallbacks — frontend sends addressLine1/pincode
         const addr = shippingAddress || {};
         const normalisedAddress = {
-            fullName:     addr.fullName    || addr.name || 'Customer',
-            address:      addr.address     || addr.addressLine1 || '',
-            addressLine1: addr.addressLine1|| addr.address || '',
-            city:         addr.city        || '',
-            state:        addr.state       || '',
-            postalCode:   addr.postalCode  || addr.pincode || '',
-            pincode:      addr.pincode     || addr.postalCode || '',
-            country:      addr.country     || 'India',
-            phone:        addr.phone       || '',
+            fullName:     (addr.fullName || addr.name || req.user?.name || 'Customer').trim(),
+            address:      (addr.address || addr.addressLine1 || 'Not specified').trim(),
+            addressLine1: (addr.addressLine1 || addr.address || 'Not specified').trim(),
+            city:         (addr.city || 'Not specified').trim() || 'Not specified',
+            state:        (addr.state || 'Not specified').trim() || 'Not specified',
+            postalCode:   (addr.postalCode || addr.pincode || '').trim(),
+            pincode:      (addr.pincode || addr.postalCode || '').trim(),
+            country:      (addr.country || 'India').trim(),
+            phone:        (addr.phone || '').trim(),
         };
 
         const order = await Order.create({
             user: req.user._id,
             orderItems: verifiedItems,
             shippingAddress: normalisedAddress,
-            paymentMethod,
+            paymentMethod: (paymentMethod || 'cod').toString(),
             itemsPrice,
             shippingPrice,
             taxPrice,
             totalPrice
         });
 
-        // ── Send confirmation email (non-blocking) ────────────────────────
-        const itemsList = verifiedItems
-            .map(i => `  • ${i.name}  x${i.quantity}  —  ₹${(i.price * i.quantity).toLocaleString('en-IN')}`)
-            .join('\n');
+        // ── Send confirmation email (non-blocking, guarded) ────────────────────────
+        if (req.user && req.user.email) {
+            try {
+                const itemsList = verifiedItems
+                    .map(i => `  • ${i.name}  x${i.quantity}  —  ₹${(i.price * i.quantity).toLocaleString('en-IN')}`)
+                    .join('\n');
 
-        const deliveryAddr = normalisedAddress
-            ? `${normalisedAddress.addressLine1 || normalisedAddress.address || ''}, ${normalisedAddress.city || ''}, ${normalisedAddress.state || ''} - ${normalisedAddress.pincode || normalisedAddress.postalCode || ''}`
-            : 'N/A';
+                const deliveryAddr = normalisedAddress
+                    ? `${normalisedAddress.addressLine1 || normalisedAddress.address || ''}, ${normalisedAddress.city || ''}, ${normalisedAddress.state || ''} - ${normalisedAddress.pincode || normalisedAddress.postalCode || ''}`
+                    : 'N/A';
 
-        sendEmail(
-            req.user.email,
-            `rathoreMart — Order Confirmed 🎉`,
-            `Hi ${req.user.name},
+                sendEmail(
+                    req.user.email,
+                    `rathoreMart — Order Confirmed 🎉`,
+                    `Hi ${req.user.name || 'Customer'},
 
 Your order has been placed successfully!
 
@@ -128,13 +133,21 @@ We'll send you another email when your order is shipped.
 
 Thank you for shopping with rathoreMart! 🛍️
 Team rathoreMart`
-        );
+                ).catch(e => console.warn('[EMAIL NOTICE]', e.message));
+            } catch (mailErr) {
+                console.warn('[EMAIL ERROR]', mailErr.message);
+            }
+        }
 
-        res.status(201).json({ success: true, order });
+        return res.status(201).json({ success: true, order });
 
     } catch (error) {
         console.error('createOrder error:', error);
-        res.status(500).json({ message: 'Server error', detail: error.message });
+        const isValidation = error.name === 'ValidationError';
+        res.status(isValidation ? 400 : 500).json({
+            message: error.message || 'Server error',
+            detail: error.message
+        });
     }
 };
 

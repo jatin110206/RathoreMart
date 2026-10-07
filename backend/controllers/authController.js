@@ -80,17 +80,13 @@ const verifyOTP = async (req, res) => {
             return res.status(404).json({ message: "User not found" });
         }
 
-        if (user.verified) {
-            return res.status(400).json({ message: "Email already verified" });
-        }
-
         // Check OTP match
         if (user.otp !== otp) {
             return res.status(400).json({ message: "Invalid OTP" });
         }
 
         // Check OTP expiry
-        if (user.otpExpiry < new Date()) {
+        if (!user.otpExpiry || user.otpExpiry < new Date()) {
             return res.status(400).json({ message: "OTP has expired. Please request a new one." });
         }
 
@@ -102,7 +98,7 @@ const verifyOTP = async (req, res) => {
 
         res.json({
             success: true,
-            message: "Email verified successfully!",
+            message: "OTP verified successfully!",
             _id:   user._id,
             name:  user.name,
             email: user.email,
@@ -129,10 +125,6 @@ const resendOTP = async (req, res) => {
 
         if (!user) {
             return res.status(404).json({ message: "User not found" });
-        }
-
-        if (user.verified) {
-            return res.status(400).json({ message: "Email already verified" });
         }
 
         // Generate fresh OTP and expiry
@@ -187,13 +179,24 @@ const LoginUser = async (req, res) => {
             });
         }
 
+        // Generate OTP for login
+        const otp = generateOTP();
+        const otpExpiry = new Date(Date.now() + 10 * 60 * 1000);
+        user.otp = otp;
+        user.otpExpiry = otpExpiry;
+        await user.save();
+
+        sendEmail(
+            user.email,
+            'rathoreMart — Login OTP 📬',
+            `Hi ${user.name},\n\nYour login OTP is:\n\n  ➤  ${otp}  ◄\n\nThis code is valid for 10 minutes. Do not share it with anyone.\n\nTeam rathoreMart`
+        ).catch(err => console.warn('Login OTP email failed (non-critical):', err.message));
+
         res.json({
             success: true,
-            _id:   user._id,
-            name:  user.name,
-            email: user.email,
-            role:  user.role,
-            token: generateToken(user._id)
+            needsOTP: true,
+            message: 'OTP sent to your email. Please verify to login.',
+            email: user.email
         });
 
     } catch (error) {

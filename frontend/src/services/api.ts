@@ -1,14 +1,4 @@
-// Handles both 'https://host.onrender.com' and 'https://host.onrender.com/api' (with or without trailing slash)
-const getApiBase = () => {
-  const envUrl = import.meta.env.VITE_API_URL;
-  if (!envUrl) return '/api';
-  const cleanUrl = envUrl.trim().replace(/\/+$/, '');
-  return cleanUrl.endsWith('/api') ? cleanUrl : `${cleanUrl}/api`;
-};
-
-const BASE = getApiBase();
-
-const STORAGE_KEY = 'rathoremart_user';
+import { BASE, STORAGE_KEY } from './config';
 
 /** Read the JWT stored after login */
 export const getToken = (): string | null => {
@@ -51,7 +41,7 @@ const request = async (method: string, path: string, body?: unknown) => {
     catch { throw new Error(`Server returned invalid response (${res.status})`); }
   }
 
-  if (!res.ok) throw new Error(data.message || `Request failed (${res.status})`);
+  if (!res.ok) throw new Error(data.detail || data.message || `Request failed (${res.status})`);
   return data;
 };
 
@@ -76,4 +66,25 @@ export const api = {
   createOrder: (payload: unknown) => request('POST', '/orders',          payload),
   getMyOrders: ()                 => request('GET',  '/orders/my-orders'),
   getOrder:    (id: string)       => request('GET',  `/orders/${id}`),
+
+  // ── Admin: Analytics ─────────────────────────────────────────────────────
+  getDashboardStats:     ()                    => request('GET', '/analytics/dashboard'),
+  getRevenueChart:       (months = 6)          => request('GET', `/analytics/revenue-chart?months=${months}`),
+  getOrderStatusBreakdown: ()                  => request('GET', '/analytics/order-status'),
+  getTopProducts:        (limit = 5)           => request('GET', `/analytics/top-products?limit=${limit}`),
+  getTopCategories:      ()                    => request('GET', '/analytics/top-categories'),
+  getUserGrowth:         (months = 6)          => request('GET', `/analytics/user-growth?months=${months}`),
+  getLowStock:           (threshold = 5)       => request('GET', `/analytics/low-stock?threshold=${threshold}`),
+  getRecentOrders:       (limit = 10)          => request('GET', `/analytics/recent-orders?limit=${limit}`),
+
+  // ── Admin: Orders ─────────────────────────────────────────────────────────
+  getAllOrders:     (params?: Record<string, string>) => {
+    const q = params ? '?' + new URLSearchParams(params).toString() : '';
+    return request('GET', `/orders${q}`);
+  },
+  updateOrderStatus: (id: string, status: string) =>
+    request('PUT', `/orders/${id}/status`, { status }),
+
+  // ── Admin: Products ───────────────────────────────────────────────────────
+  deleteProduct: (id: string) => request('DELETE', `/products/${id}`),
 };

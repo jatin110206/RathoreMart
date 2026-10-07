@@ -10,7 +10,7 @@ const {
     deleteProduct,
     addReview,
     deleteReview
-} = require('../controlers/productControler');
+} = require('../controllers/productController');
 
 const { protect } = require('../middleware/authMiddleware');
 const { admin }   = require('../middleware/adminMiddleware');

@@ -10,7 +10,7 @@ const {
     getUserGrowth,
     getLowStockProducts,
     getRecentOrders
-} = require('../controlers/analyticsController');
+} = require('../controllers/analyticsController');
 
 const { protect } = require('../middleware/authMiddleware');
 const { admin }   = require('../middleware/adminMiddleware');

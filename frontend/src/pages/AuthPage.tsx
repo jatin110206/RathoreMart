@@ -31,11 +31,15 @@ export const AuthPage: React.FC = () => {
     const result = await login(form.email, form.password);
     setLoading(false);
 
-    if (result.success) {
+    if (result.success && result.needsOTP) {
+      setPendingEmail(form.email);
+      setForm(f => ({ ...f, otp: '' }));
+      setMode('otp');
+      addToast('Check your email for a 6-digit OTP! ✉️', 'success');
+    } else if (result.success) {
       addToast('Welcome back!', 'success');
       navigate('/account');
     } else if (result.needsOTP) {
-      // Account exists but email not verified yet
       setPendingEmail(form.email);
       setMode('otp');
       addToast('Please verify your email with the OTP sent to your inbox.', 'info');

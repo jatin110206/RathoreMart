@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, ReactNode } from 'react';
 import { User } from '../types';
+import { BASE, STORAGE_KEY } from '../services/config';
 
 interface AuthContextType {
   user: User | null;
@@ -11,15 +12,6 @@ interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
-// Handles both 'https://host.onrender.com' and 'https://host.onrender.com/api' (with or without trailing slash)
-const getApiBase = () => {
-  const envUrl = import.meta.env.VITE_API_URL;
-  if (!envUrl) return '/api';
-  const cleanUrl = envUrl.trim().replace(/\/+$/, '');
-  return cleanUrl.endsWith('/api') ? cleanUrl : `${cleanUrl}/api`;
-};
-const STORAGE_KEY = 'rathoremart_user';
-const BASE = getApiBase();
 
 /** Safely POST and parse response */
 const post = async (path: string, body: object) => {
@@ -42,7 +34,7 @@ const buildUserData = (data: any) => ({
   id:        data._id,
   name:      data.name,
   email:     data.email,
-  role:      data.role,
+  role:      data.role as 'user' | 'admin',
   addresses: [],
   token:     data.token,
 });
@@ -82,6 +74,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const login = async (email: string, password: string) => {
     try {
       const data = await post('/auth/login', { email, password });
+      if (data.needsOTP) {
+        return { success: true, needsOTP: true };
+      }
       applyUser(data);
       return { success: true };
     } catch (err: any) {
